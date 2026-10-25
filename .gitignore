@@ -1,0 +1,8 @@
+# SkyBook-OTA-Project-Guide.md
+bin/
+obj/
+.vs/
+*.user
+*.log
+.env
+*.tar.gz
