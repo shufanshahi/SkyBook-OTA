@@ -4,6 +4,8 @@
 **Deadline:** October 30, 2026 (today is October 25, so you have about 5–6 days)
 **Goal:** Build a small but realistic **Online Travel Agency (OTA) web application** — an **ASP.NET Core MVC** site with a real browser UI where travel agents search flights, book, ticket, cancel and refund, and admins manage agents. Push it to GitHub and put the link on your CV.
 
+> **Progress legend:** ✅ on a heading = already built in this repo. Checked boxes in the day plan (Section 15) show the same.
+
 > **Focus rule: this is a backend project.** The recruiter is hiring for backend work (supplier integration, SQL, async, booking logic, tests). The MVC UI exists **only to visualize and trigger the backend**. Use the default Bootstrap template, plain tables and forms, no custom CSS, no JavaScript beyond what the template ships. Roughly **80% of your time goes to Sections 6–9, 11–12** (domain, database, suppliers, services, tests) and **at most 20% to Section 10** (views). All business logic lives in services, never in controllers or views; controllers just call a service and pick a view.
 
 > **How to read this guide:** You are learning ASP.NET as you build. So every part says *what* to do, *why*, and *how to check it worked*. Do the steps in order. Do not copy code you do not understand — read the "Concept" boxes first, then type the code yourself where you can.
@@ -269,7 +271,7 @@ All five must print a version. If one fails, fix it now.
 
 ## 5. Create the solution (step by step)
 
-### 5.1 Repository structure (target)
+### 5.1 Repository structure (target) ✅
 
 ```
 skybook-ota/
@@ -307,7 +309,7 @@ skybook-ota/
 
 **Why several projects?** Layering. `Domain` knows nothing about the web or database. `Application` defines *what* the app does (interfaces). `Infrastructure` implements *how* (EF, HTTP clients). `Web` is only the UI. Dependencies point inward: `Web → Infrastructure → Application → Domain`. This is a favourite interview topic.
 
-### 5.2 Create projects
+### 5.2 Create projects ✅
 
 ```bash
 mkdir skybook-ota && cd skybook-ota
@@ -334,7 +336,7 @@ Delete the `Class1.cs` files the class-library template creates:
 rm src/SkyBook.Application/Class1.cs src/SkyBook.Domain/Class1.cs src/SkyBook.Infrastructure/Class1.cs
 ```
 
-### 5.3 Wire project references
+### 5.3 Wire project references ✅
 
 ```bash
 dotnet add src/SkyBook.Application    reference src/SkyBook.Domain
@@ -344,7 +346,7 @@ dotnet add tests/SkyBook.UnitTests        reference src/SkyBook.Application src/
 dotnet add tests/SkyBook.IntegrationTests reference src/SkyBook.Web
 ```
 
-### 5.4 Add NuGet packages
+### 5.4 Add NuGet packages ✅
 
 ```bash
 dotnet add src/SkyBook.Infrastructure package Microsoft.EntityFrameworkCore.SqlServer --version 8.*
@@ -362,7 +364,7 @@ dotnet add tests/SkyBook.IntegrationTests package Microsoft.AspNetCore.Mvc.Testi
 dotnet add tests/SkyBook.IntegrationTests package FluentAssertions
 ```
 
-### 5.5 First run — see the template work
+### 5.5 First run — see the template work (partly done: it builds and serves; the About-page exercise is still yours)
 
 ```bash
 dotnet build
@@ -388,7 +390,7 @@ Open the URL printed in the terminal (e.g. `http://localhost:5xxx`). You should 
 
 **Exercise (15 min):** change the text in `Views/Home/Index.cshtml`, refresh the browser, and see it change (use `dotnet watch --project src/SkyBook.Web` for hot reload). Add a new action `public IActionResult About() => View();` and a `Views/Home/About.cshtml`; visit `/Home/About`. Congratulations — that is the whole MVC loop.
 
-### 5.6 Commit
+### 5.6 Commit (committed locally; pushing to GitHub is still to do)
 
 ```bash
 git add . && git commit -m "chore: scaffold solution (MVC web, layers, tests)"
@@ -403,11 +405,11 @@ git push -u origin main
 
 ---
 
-## 6. Domain layer
+## 6. Domain layer ✅
 
 Plain C# classes. No EF, no ASP.NET references. Work in `src/SkyBook.Domain`.
 
-### 6.1 Entities
+### 6.1 Entities ✅
 
 | Entity | Key fields |
 |---|---|
@@ -441,7 +443,7 @@ public class Agent
 
 Add `public class DomainException(string message) : Exception(message);` in `SkyBook.Domain`.
 
-### 6.2 Booking state machine
+### 6.2 Booking state machine ✅
 
 ```
    Search ─► Price ─► [Book] ─► HELD ──[Issue]──► TICKETED ──[Cancel]──► CANCELLED ──[Refund]──► REFUNDED
@@ -489,9 +491,9 @@ git add . && git commit -m "feat(domain): entities and booking state machine wit
 
 ---
 
-## 7. Database: SQL Server, EF Core, stored procedures
+## 7. Database: SQL Server, EF Core, stored procedures ✅
 
-### 7.1 Start SQL Server in Docker
+### 7.1 Start SQL Server in Docker ✅
 
 ```bash
 docker run -d --name skybook-sql \
@@ -503,7 +505,7 @@ docker logs skybook-sql | tail -5     # wait for "SQL Server is now ready for cl
 
 Connect from VS Code (mssql extension → *Add Connection*): server `localhost,1433`, user `sa`, password above, tick **Trust server certificate**. Run `SELECT @@VERSION;` to verify.
 
-### 7.2 Connection string and user-secrets
+### 7.2 Connection string and user-secrets ✅
 
 Don't commit passwords. Use **user-secrets** locally:
 
@@ -514,7 +516,7 @@ dotnet user-secrets set "ConnectionStrings:Default" "Server=localhost,1433;Datab
 cd ../..
 ```
 
-### 7.3 DbContext
+### 7.3 DbContext ✅
 
 In `SkyBook.Infrastructure/Persistence/SkyBookDbContext.cs`:
 
@@ -563,7 +565,7 @@ public class SkyBookDbContext(DbContextOptions<SkyBookDbContext> options) : DbCo
 
 The filtered index `IX_Bookings_Status_HoldExpires` is what the hold-expiry background job uses — a good interview talking point.
 
-### 7.4 Register and migrate
+### 7.4 Register and migrate ✅
 
 In `SkyBook.Web/Program.cs` (before `builder.Build()`):
 
@@ -585,7 +587,7 @@ dotnet ef database update \
 
 > *Concept:* a **migration** is a C# file describing a schema change. `--project` is where migrations live; `--startup-project` is the app that supplies the connection string.
 
-### 7.5 Stored procedures
+### 7.5 Stored procedures ✅
 
 Keep them as `.sql` files in `/db/procedures` and apply them from a migration so a fresh database gets them automatically:
 
@@ -685,7 +687,7 @@ END
 
 Apply with `dotnet ef database update ...` and test each SP in the mssql extension.
 
-### 7.6 Calling an SP with Dapper
+### 7.6 Calling an SP with Dapper ✅
 
 ```csharp
 public class BookingQueries(IConfiguration config)
@@ -703,11 +705,11 @@ public class BookingQueries(IConfiguration config)
 }
 ```
 
-### 7.7 Seed data
+### 7.7 Seed data ✅
 
 `db/seed.sql` (or a C# `DbSeeder` run at startup in Development): one admin, two agents (with wallet balance), two sample bookings. Hash passwords with `PasswordHasher<User>` in C# — don't put plaintext in SQL. Demo logins: `admin@skybook.test / Admin@123`, `agent1@skybook.test / Agent@123`.
 
-### 7.8 Performance experiment (`docs/db-performance-notes.md`)
+### 7.8 Performance experiment (`docs/db-performance-notes.md`) ✅
 
 1. Seed ~100k bookings with a script (a `WHILE` loop or a recursive CTE).
 2. Run the agent-history query **without** `IX_Bookings_Agent_Created`; capture `SET STATISTICS IO, TIME ON` output and the execution plan (table/clustered index scan).
@@ -720,11 +722,11 @@ git add . && git commit -m "feat(db): EF Core model, migrations, stored procedur
 
 ---
 
-## 8. Mock suppliers
+## 8. Mock suppliers ✅
 
 You need fake airlines to call. Build these before the real integration, and test them with curl/Postman.
 
-### 8.1 MockNdc in Go (REST/JSON)
+### 8.1 MockNdc in Go (REST/JSON) ✅
 
 ```bash
 mkdir mock-ndc-go && cd mock-ndc-go
@@ -807,7 +809,7 @@ curl -s -X POST localhost:8081/v1/offers/search \
   -d '{"origin":"DAC","destination":"CGP","date":"2026-11-14","cabin":"Economy"}'
 ```
 
-### 8.2 MockGds (SOAP, C# minimal API)
+### 8.2 MockGds (SOAP, C# minimal API) ✅
 
 `src/SkyBook.MockGds/Program.cs` handles `POST /soap/air`, reads the `SOAPAction` header, and dispatches to `AirShopping`, `AirPrice`, `AirBook`, `AirTicket`, `AirCancel`. It returns SOAP XML envelopes. Add behaviors you can trigger on purpose:
 
@@ -1562,15 +1564,15 @@ Add the CI badge to the README.
 "MVP" = must-have. Cut from the bottom of the list if you fall behind.
 
 ### Day 1 — Sun Oct 25 (today): Setup + foundation
-- [ ] Install everything (Section 4), verify each tool
+- [x] Install everything (Section 4), verify each tool
 - [ ] Create solution, run the template site, do the About-page exercise (Section 5)
-- [ ] Domain entities + `BookingTransitions` + unit tests (Section 6)
-- [ ] SQL Server in Docker, DbContext, first migration (Section 7.1–7.4)
+- [x] Domain entities + `BookingTransitions` + unit tests (Section 6)
+- [x] SQL Server in Docker, DbContext, first migration (Section 7.1–7.4) — all of Section 7 is done, including stored procedures, Dapper, seeding and the index experiment
 
 ### Day 2 — Mon Oct 26: Mock suppliers + login
-- [ ] Go MockNdc: search, price, order, ticket, cancel, health
-- [ ] MockGds SOAP with `ERR` / `SLW` triggers
-- [ ] Seed users; bare login page + roles (10.1–10.3, copy the code, don't polish)
+- [x] Go MockNdc: search, price, order, ticket, cancel, health
+- [x] MockGds SOAP with `ERR` / `SLW` triggers
+- [ ] Seed users ✅ done; bare login page + roles (10.1–10.3) still to do
 
 ### Day 3 — Tue Oct 27: Integration layer (backend-heavy)
 - [ ] `IFlightSupplier`, both clients, resilience, supplier logging handler, aggregator, offer cache
@@ -1586,7 +1588,7 @@ Add the CI badge to the README.
 - [ ] Admin services (agents, top-up, markup, booking search, supplier logs); bare tables only (10.9)
 - [ ] Hold-expiry job + integration tests (full flow, idempotency, concurrency)
 - [ ] Dockerfiles + Compose; test a clean `docker compose up --build`
-- [ ] CI green; test-cases.md; index experiment notes
+- [ ] CI green; test-cases.md; index experiment notes (index notes ✅ done)
 
 ### Day 6 — Fri Oct 30: Apply (deadline day — don't leave it to the last hour)
 - [ ] README with screenshots + architecture diagram (draw.io / Excalidraw)

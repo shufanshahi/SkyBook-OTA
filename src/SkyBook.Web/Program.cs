@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
+using SkyBook.Infrastructure;
 using SkyBook.Infrastructure.Persistence;
-using SkyBook.Infrastructure.Queries;
 using SkyBook.Web.Data;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -9,7 +9,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllersWithViews();
 builder.Services.AddDbContext<SkyBookDbContext>(o =>
     o.UseSqlServer(builder.Configuration.GetConnectionString("Default")));
-builder.Services.AddScoped<BookingQueries>();
+builder.Services.AddSkyBookSuppliers(builder.Configuration);
 
 var app = builder.Build();
 
