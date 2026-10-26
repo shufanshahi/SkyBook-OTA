@@ -1,0 +1,756 @@
+{
+  "info": {
+    "name": "SkyBook mock suppliers",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "Run SkyGDS (port 8080) and AeroNDC (port 8081). Set environment variables ndcUrl=http://localhost:8081 and gdsUrl=http://localhost:8080."
+  },
+  "variable": [
+    {
+      "key": "ndcUrl",
+      "value": "http://localhost:8081"
+    },
+    {
+      "key": "gdsUrl",
+      "value": "http://localhost:8080"
+    }
+  ],
+  "item": [
+    {
+      "name": "AeroNDC (REST/JSON, Go) - run in order",
+      "item": [
+        {
+          "name": "1. Search DAC-CGP",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200', () => pm.response.to.have.status(200));",
+                  "const offers = pm.response.json().offers;",
+                  "pm.test('3+ offers', () => pm.expect(offers.length).to.be.at.least(3));",
+                  "pm.environment.set('offerId', offers[0].offerId);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"origin\":\"DAC\",\"destination\":\"CGP\",\"date\":\"2026-11-14\",\"cabin\":\"Economy\",\"pax\":{\"adt\":1,\"chd\":0,\"inf\":0}}"
+            },
+            "url": {
+              "raw": "{{ndcUrl}}/v1/offers/search",
+              "host": [
+                "{{ndcUrl}}"
+              ],
+              "path": [
+                "v1",
+                "offers",
+                "search"
+              ]
+            }
+          }
+        },
+        {
+          "name": "2. Price offer",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200', () => pm.response.to.have.status(200));",
+                  "pm.test('same offer', () => pm.expect(pm.response.json().offer.offerId).to.eql(pm.environment.get('offerId')));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}"
+            },
+            "url": {
+              "raw": "{{ndcUrl}}/v1/offers/{{offerId}}/price",
+              "host": [
+                "{{ndcUrl}}"
+              ],
+              "path": [
+                "v1",
+                "offers",
+                "{{offerId}}",
+                "price"
+              ]
+            }
+          }
+        },
+        {
+          "name": "3. Create order (book)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('201', () => pm.response.to.have.status(201));",
+                  "pm.test('HELD', () => pm.expect(pm.response.json().status).to.eql('HELD'));",
+                  "pm.environment.set('orderId', pm.response.json().orderId);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"offerId\":\"{{offerId}}\",\"passengers\":[{\"type\":\"ADT\",\"firstName\":\"Test\",\"lastName\":\"Pax\"}]}"
+            },
+            "url": {
+              "raw": "{{ndcUrl}}/v1/orders",
+              "host": [
+                "{{ndcUrl}}"
+              ],
+              "path": [
+                "v1",
+                "orders"
+              ]
+            }
+          }
+        },
+        {
+          "name": "4. Ticket order",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200', () => pm.response.to.have.status(200));",
+                  "pm.test('TICKETED with ticket numbers', () => { const j = pm.response.json(); pm.expect(j.status).to.eql('TICKETED'); pm.expect(j.ticketNumbers.length).to.be.above(0); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": ""
+            },
+            "url": {
+              "raw": "{{ndcUrl}}/v1/orders/{{orderId}}/ticket",
+              "host": [
+                "{{ndcUrl}}"
+              ],
+              "path": [
+                "v1",
+                "orders",
+                "{{orderId}}",
+                "ticket"
+              ]
+            }
+          }
+        },
+        {
+          "name": "5. Ticket again -> 409",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('409 ALREADY_TICKETED', () => { pm.response.to.have.status(409); pm.expect(pm.response.json().errors[0].code).to.eql('ALREADY_TICKETED'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": ""
+            },
+            "url": {
+              "raw": "{{ndcUrl}}/v1/orders/{{orderId}}/ticket",
+              "host": [
+                "{{ndcUrl}}"
+              ],
+              "path": [
+                "v1",
+                "orders",
+                "{{orderId}}",
+                "ticket"
+              ]
+            }
+          }
+        },
+        {
+          "name": "6. Cancel order",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('CANCELLED', () => { pm.response.to.have.status(200); pm.expect(pm.response.json().status).to.eql('CANCELLED'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": ""
+            },
+            "url": {
+              "raw": "{{ndcUrl}}/v1/orders/{{orderId}}/cancel",
+              "host": [
+                "{{ndcUrl}}"
+              ],
+              "path": [
+                "v1",
+                "orders",
+                "{{orderId}}",
+                "cancel"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Trigger: Origin ERR -> 500",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('500 SUPPLIER_ERROR', () => { pm.response.to.have.status(500); pm.expect(pm.response.json().errors[0].code).to.eql('SUPPLIER_ERROR'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"origin\":\"ERR\",\"destination\":\"CGP\",\"date\":\"2026-11-14\"}"
+            },
+            "url": {
+              "raw": "{{ndcUrl}}/v1/offers/search",
+              "host": [
+                "{{ndcUrl}}"
+              ],
+              "path": [
+                "v1",
+                "offers",
+                "search"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Trigger: Destination SLW -> ~8s delay",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('slow (>= 7.5s)', () => pm.expect(pm.response.responseTime).to.be.at.least(7500));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"origin\":\"DAC\",\"destination\":\"SLW\",\"date\":\"2026-11-14\"}"
+            },
+            "url": {
+              "raw": "{{ndcUrl}}/v1/offers/search",
+              "host": [
+                "{{ndcUrl}}"
+              ],
+              "path": [
+                "v1",
+                "offers",
+                "search"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Trigger: Destination EXP -> offer expired 409",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.environment.set('expiredOfferId', pm.response.json().offers[0].offerId);",
+                  "pm.test('search ok', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"origin\":\"DAC\",\"destination\":\"EXP\",\"date\":\"2026-11-14\"}"
+            },
+            "url": {
+              "raw": "{{ndcUrl}}/v1/offers/search",
+              "host": [
+                "{{ndcUrl}}"
+              ],
+              "path": [
+                "v1",
+                "offers",
+                "search"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Price expired offer -> 409 OFFER_EXPIRED",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('409 OFFER_EXPIRED', () => { pm.response.to.have.status(409); pm.expect(pm.response.json().errors[0].code).to.eql('OFFER_EXPIRED'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}"
+            },
+            "url": {
+              "raw": "{{ndcUrl}}/v1/offers/{{expiredOfferId}}/price",
+              "host": [
+                "{{ndcUrl}}"
+              ],
+              "path": [
+                "v1",
+                "offers",
+                "{{expiredOfferId}}",
+                "price"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "SkyGDS (SOAP/XML, C#) - run in order",
+      "item": [
+        {
+          "name": "1. AirShopping DAC-CGP",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200', () => pm.response.to.have.status(200));",
+                  "const m = pm.response.text().match(/<gds:ItineraryId>([^<]+)<\\/gds:ItineraryId>/);",
+                  "pm.test('has itinerary', () => pm.expect(m).to.not.be.null);",
+                  "pm.environment.set('itineraryId', m[1]);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "text/xml"
+              },
+              {
+                "key": "SOAPAction",
+                "value": "\"http://skygds.mock/air/v1/AirShopping\""
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "<soap:Envelope xmlns:soap=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:gds=\"http://skygds.mock/air/v1\"><soap:Body><gds:AirShoppingRQ><gds:Origin>DAC</gds:Origin><gds:Destination>CGP</gds:Destination><gds:DepartureDate>2026-11-14</gds:DepartureDate><gds:Adults>1</gds:Adults><gds:Cabin>Economy</gds:Cabin></gds:AirShoppingRQ></soap:Body></soap:Envelope>"
+            },
+            "url": {
+              "raw": "{{gdsUrl}}/soap/air",
+              "host": [
+                "{{gdsUrl}}"
+              ],
+              "path": [
+                "soap",
+                "air"
+              ]
+            }
+          }
+        },
+        {
+          "name": "2. AirPrice (fare may rise 50% of the time)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200', () => pm.response.to.have.status(200));",
+                  "pm.test('has BaseFare', () => pm.expect(pm.response.text()).to.include('<gds:BaseFare>'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "text/xml"
+              },
+              {
+                "key": "SOAPAction",
+                "value": "\"http://skygds.mock/air/v1/AirPrice\""
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "<soap:Envelope xmlns:soap=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:gds=\"http://skygds.mock/air/v1\"><soap:Body><gds:AirPriceRQ><gds:ItineraryId>{{itineraryId}}</gds:ItineraryId></gds:AirPriceRQ></soap:Body></soap:Envelope>"
+            },
+            "url": {
+              "raw": "{{gdsUrl}}/soap/air",
+              "host": [
+                "{{gdsUrl}}"
+              ],
+              "path": [
+                "soap",
+                "air"
+              ]
+            }
+          }
+        },
+        {
+          "name": "3. AirBook",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200', () => pm.response.to.have.status(200));",
+                  "const m = pm.response.text().match(/<gds:Locator>([^<]+)<\\/gds:Locator>/);",
+                  "pm.test('has locator', () => pm.expect(m).to.not.be.null);",
+                  "pm.environment.set('locator', m[1]);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "text/xml"
+              },
+              {
+                "key": "SOAPAction",
+                "value": "\"http://skygds.mock/air/v1/AirBook\""
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "<soap:Envelope xmlns:soap=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:gds=\"http://skygds.mock/air/v1\"><soap:Body><gds:AirBookRQ><gds:ItineraryId>{{itineraryId}}</gds:ItineraryId><gds:Passengers><gds:Passenger>Test Pax</gds:Passenger></gds:Passengers></gds:AirBookRQ></soap:Body></soap:Envelope>"
+            },
+            "url": {
+              "raw": "{{gdsUrl}}/soap/air",
+              "host": [
+                "{{gdsUrl}}"
+              ],
+              "path": [
+                "soap",
+                "air"
+              ]
+            }
+          }
+        },
+        {
+          "name": "4. AirTicket",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('ticketed', () => { pm.response.to.have.status(200); pm.expect(pm.response.text()).to.include('<gds:Status>TK</gds:Status>'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "text/xml"
+              },
+              {
+                "key": "SOAPAction",
+                "value": "\"http://skygds.mock/air/v1/AirTicket\""
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "<soap:Envelope xmlns:soap=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:gds=\"http://skygds.mock/air/v1\"><soap:Body><gds:AirTicketRQ><gds:Locator>{{locator}}</gds:Locator></gds:AirTicketRQ></soap:Body></soap:Envelope>"
+            },
+            "url": {
+              "raw": "{{gdsUrl}}/soap/air",
+              "host": [
+                "{{gdsUrl}}"
+              ],
+              "path": [
+                "soap",
+                "air"
+              ]
+            }
+          }
+        },
+        {
+          "name": "5. AirTicket again -> SOAP fault",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('fault: Already ticketed', () => { pm.response.to.have.status(500); pm.expect(pm.response.text()).to.include('Already ticketed'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "text/xml"
+              },
+              {
+                "key": "SOAPAction",
+                "value": "\"http://skygds.mock/air/v1/AirTicket\""
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "<soap:Envelope xmlns:soap=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:gds=\"http://skygds.mock/air/v1\"><soap:Body><gds:AirTicketRQ><gds:Locator>{{locator}}</gds:Locator></gds:AirTicketRQ></soap:Body></soap:Envelope>"
+            },
+            "url": {
+              "raw": "{{gdsUrl}}/soap/air",
+              "host": [
+                "{{gdsUrl}}"
+              ],
+              "path": [
+                "soap",
+                "air"
+              ]
+            }
+          }
+        },
+        {
+          "name": "6. AirCancel",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('cancelled', () => pm.expect(pm.response.text()).to.include('<gds:Status>XX</gds:Status>'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "text/xml"
+              },
+              {
+                "key": "SOAPAction",
+                "value": "\"http://skygds.mock/air/v1/AirCancel\""
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "<soap:Envelope xmlns:soap=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:gds=\"http://skygds.mock/air/v1\"><soap:Body><gds:AirCancelRQ><gds:Locator>{{locator}}</gds:Locator></gds:AirCancelRQ></soap:Body></soap:Envelope>"
+            },
+            "url": {
+              "raw": "{{gdsUrl}}/soap/air",
+              "host": [
+                "{{gdsUrl}}"
+              ],
+              "path": [
+                "soap",
+                "air"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Trigger: Origin ERR -> SOAP fault",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('SOAP fault', () => { pm.response.to.have.status(500); pm.expect(pm.response.text()).to.include('<soap:Fault>'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "text/xml"
+              },
+              {
+                "key": "SOAPAction",
+                "value": "\"http://skygds.mock/air/v1/AirShopping\""
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "<soap:Envelope xmlns:soap=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:gds=\"http://skygds.mock/air/v1\"><soap:Body><gds:AirShoppingRQ><gds:Origin>ERR</gds:Origin><gds:Destination>CGP</gds:Destination><gds:DepartureDate>2026-11-14</gds:DepartureDate><gds:Adults>1</gds:Adults><gds:Cabin>Economy</gds:Cabin></gds:AirShoppingRQ></soap:Body></soap:Envelope>"
+            },
+            "url": {
+              "raw": "{{gdsUrl}}/soap/air",
+              "host": [
+                "{{gdsUrl}}"
+              ],
+              "path": [
+                "soap",
+                "air"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Trigger: Destination SLW -> ~8s delay",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('slow (>= 7.5s)', () => pm.expect(pm.response.responseTime).to.be.at.least(7500));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "text/xml"
+              },
+              {
+                "key": "SOAPAction",
+                "value": "\"http://skygds.mock/air/v1/AirShopping\""
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "<soap:Envelope xmlns:soap=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:gds=\"http://skygds.mock/air/v1\"><soap:Body><gds:AirShoppingRQ><gds:Origin>DAC</gds:Origin><gds:Destination>SLW</gds:Destination><gds:DepartureDate>2026-11-14</gds:DepartureDate><gds:Adults>1</gds:Adults><gds:Cabin>Economy</gds:Cabin></gds:AirShoppingRQ></soap:Body></soap:Envelope>"
+            },
+            "url": {
+              "raw": "{{gdsUrl}}/soap/air",
+              "host": [
+                "{{gdsUrl}}"
+              ],
+              "path": [
+                "soap",
+                "air"
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
