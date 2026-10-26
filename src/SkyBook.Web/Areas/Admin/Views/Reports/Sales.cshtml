@@ -1,0 +1,19 @@
+@model SalesReportViewModel
+@{ ViewData["Title"] = "Sales report"; }
+<h3>Sales by agent and month</h3>
+<form method="get" class="row g-2 mb-3">
+    <div class="col-md-2"><input asp-for="From" type="date" class="form-control" /></div>
+    <div class="col-md-2"><input asp-for="To" type="date" class="form-control" /></div>
+    <div class="col-auto"><button class="btn btn-primary">Run</button></div>
+</form>
+<table class="table table-sm table-striped">
+    <thead><tr><th>Month</th><th>Agency</th><th class="text-end">Tickets issued</th><th class="text-end">Gross</th><th class="text-end">Refunds</th><th class="text-end">Net</th></tr></thead>
+    <tbody>
+    @foreach (var r in Model.Rows)
+    {
+        <tr><td>@r.Month.ToString("yyyy-MM")</td><td>@r.AgencyName</td><td class="text-end">@r.BookingsTicketed</td>
+            <td class="text-end">@r.GrossSales.ToString("N0")</td><td class="text-end">@r.Refunds.ToString("N0")</td><td class="text-end">@r.NetSales.ToString("N0")</td></tr>
+    }
+    </tbody>
+</table>
+@if (!Model.Rows.Any()) { <p class="text-muted">No sales in this period.</p> }

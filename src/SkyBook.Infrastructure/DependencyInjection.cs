@@ -1,6 +1,9 @@
+using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Configuration;
+using SkyBook.Domain.Entities;
 using Microsoft.Extensions.DependencyInjection;
 using SkyBook.Application.Suppliers;
+using SkyBook.Infrastructure.Bookings;
 using SkyBook.Infrastructure.Queries;
 using SkyBook.Infrastructure.Suppliers;
 
@@ -26,6 +29,9 @@ public static class DependencyInjection
 
         services.AddScoped<FlightSearchService>();
         services.AddScoped<FlightPricingService>();
+        services.AddScoped<BookingService>();
+        services.AddScoped<AdminService>();
+        services.AddScoped<IPasswordHasher<User>, PasswordHasher<User>>();
         return services;
     }
 

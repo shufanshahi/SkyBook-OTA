@@ -1,0 +1,31 @@
+@model SupplierLogViewModel
+@{ ViewData["Title"] = "Supplier logs"; }
+<h3>Supplier logs</h3>
+<p class="text-muted">Every call to a supplier, with the request, response and timing. Paste a correlation id (shown on error pages and in the <code>X-Correlation-Id</code> response header) to see one request end to end. Passport numbers and dates of birth are masked.</p>
+<form method="get" class="row g-2 mb-3">
+    <div class="col-md-4"><input asp-for="CorrelationId" class="form-control" placeholder="Correlation id" /></div>
+    <div class="col-md-2"><select asp-for="Supplier" class="form-select">
+        <option value="">All suppliers</option>
+        <option value="SkyGDS" selected="@(Model.Supplier == "SkyGDS")">SkyGDS</option>
+        <option value="AeroNDC" selected="@(Model.Supplier == "AeroNDC")">AeroNDC</option>
+    </select></div>
+    <div class="col-auto"><button class="btn btn-primary">Filter</button></div>
+</form>
+<table class="table table-sm align-middle">
+    <thead><tr><th>Time (UTC)</th><th>Supplier</th><th>Operation</th><th>HTTP</th><th class="text-end">ms</th><th>Correlation id</th></tr></thead>
+    <tbody>
+    @foreach (var l in Model.Logs)
+    {
+        <tr class="@(l.HttpStatus is >= 200 and < 300 ? "" : "table-danger")">
+            <td>@l.CreatedAt.ToString("MM-dd HH:mm:ss")</td><td>@l.Supplier</td><td>@l.Operation</td>
+            <td>@(l.HttpStatus == 0 ? "error" : l.HttpStatus.ToString())</td><td class="text-end">@l.DurationMs</td>
+            <td><a asp-route-correlationId="@l.CorrelationId"><code>@l.CorrelationId</code></a></td>
+        </tr>
+        <tr><td colspan="6" class="border-0 pt-0">
+            <details><summary class="small text-muted">request / response</summary>
+                <pre class="small mb-1">@l.RequestBody</pre><pre class="small">@l.ResponseBody</pre></details>
+        </td></tr>
+    }
+    </tbody>
+</table>
+@if (!Model.Logs.Any()) { <p class="text-muted">No logs match.</p> }

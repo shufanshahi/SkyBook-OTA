@@ -1,31 +1,32 @@
-using System.Diagnostics;
+using System.Security.Claims;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using SkyBook.Application.Suppliers;
+using SkyBook.Infrastructure.Bookings;
+using SkyBook.Web.Infrastructure;
 using SkyBook.Web.Models;
 
 namespace SkyBook.Web.Controllers;
 
-public class HomeController : Controller
+public class HomeController(AdminService admin, BookingService bookings) : Controller
 {
-    private readonly ILogger<HomeController> _logger;
-
-    public HomeController(ILogger<HomeController> logger)
+    public async Task<IActionResult> Index(CancellationToken ct)
     {
-        _logger = logger;
+        if (User.IsInRole("Admin"))
+        {
+            var (agents, today, pending) = await admin.DashboardAsync(ct);
+            return View(new DashboardViewModel { IsAdmin = true, AgentCount = agents, BookingsToday = today, PendingRefunds = pending });
+        }
+
+        var agentId = int.Parse(User.FindFirstValue("AgentId")!);
+        return View(new DashboardViewModel
+        {
+            Agent = await admin.GetAgentAsync(agentId, ct),
+            Recent = await bookings.ListAsync(agentId, null, 1, 5, ct)
+        });
     }
 
-    public IActionResult Index()
-    {
-        return View();
-    }
-
-    public IActionResult Privacy()
-    {
-        return View();
-    }
-
-    [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
-    public IActionResult Error()
-    {
-        return View(new ErrorViewModel { RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier });
-    }
+    [AllowAnonymous]
+    public IActionResult Error() =>
+        View(new ErrorViewModel { RequestId = HttpContext.Items[CorrelationIdMiddleware.Header] as string ?? CorrelationContext.Id });
 }

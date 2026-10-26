@@ -2,6 +2,7 @@ using System.Data;
 using Dapper;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Configuration;
+using SkyBook.Domain;
 
 namespace SkyBook.Infrastructure.Queries;
 
@@ -42,5 +43,28 @@ public class BookingQueries(IConfiguration config)
             commandType: CommandType.StoredProcedure,
             cancellationToken: ct));
         return rows.AsList();
+    }
+
+    /// <summary>Atomic wallet debit + status change (usp_IssueTicket). Raises DomainException for the SP's business errors.</summary>
+    public Task IssueTicketAsync(long bookingId, int agentId, CancellationToken ct) =>
+        ExecuteAsync("dbo.usp_IssueTicket", new { BookingId = bookingId, AgentId = agentId }, ct);
+
+    /// <summary>Cancels a Held/Ticketed booking and queues a pending refund when it had been ticketed (usp_CancelBooking).</summary>
+    public Task CancelBookingAsync(long bookingId, int agentId, CancellationToken ct) =>
+        ExecuteAsync("dbo.usp_CancelBooking", new { BookingId = bookingId, AgentId = agentId }, ct);
+
+    private async Task ExecuteAsync(string procedure, object args, CancellationToken ct)
+    {
+        await using var conn = Open();
+        try
+        {
+            await conn.ExecuteAsync(new CommandDefinition(procedure, args,
+                commandType: CommandType.StoredProcedure, cancellationToken: ct));
+        }
+        catch (SqlException ex) when (ex.Number is >= 50001 and <= 50099)
+        {
+            // THROW numbers 50001+ are our own business errors (not found, wrong status, insufficient balance)
+            throw new DomainException(ex.Message);
+        }
     }
 }

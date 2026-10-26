@@ -1,0 +1,69 @@
+@model BookingDetailsViewModel
+@{
+    ViewData["Title"] = "Booking " + Model.Booking.Pnr;
+    var b = Model.Booking;
+}
+<div class="d-flex justify-content-between align-items-start">
+    <div>
+        <h3>PNR @b.Pnr <partial name="_StatusBadge" model="b.Status.ToString()" /></h3>
+        <div class="text-muted">@b.Supplier &middot; supplier ref @b.SupplierRef &middot; created @b.CreatedAt.ToString("yyyy-MM-dd HH:mm") UTC</div>
+        @if (b.Status == BookingStatus.Held && b.HoldExpiresAt is { } hold)
+        {
+            <div class="@(Model.HoldExpired ? "text-danger" : "text-warning")">
+                @(Model.HoldExpired ? "Hold expired" : "Hold expires") @hold.ToString("yyyy-MM-dd HH:mm") UTC
+            </div>
+        }
+    </div>
+    <div class="text-end fs-4">@b.Currency @b.TotalFare.ToString("N0")</div>
+</div>
+
+<h6 class="mt-4">Flight</h6>
+<table class="table table-sm">
+    <thead><tr><th>Flight</th><th>Route</th><th>Departs (UTC)</th><th>Arrives (UTC)</th><th>Cabin</th></tr></thead>
+    <tbody>
+    @foreach (var s in b.Segments)
+    {
+        <tr><td>@s.Carrier @s.FlightNo</td><td>@s.Origin &rarr; @s.Destination</td>
+            <td>@s.DepartureUtc.ToString("yyyy-MM-dd HH:mm")</td><td>@s.ArrivalUtc.ToString("yyyy-MM-dd HH:mm")</td><td>@s.CabinClass</td></tr>
+    }
+    </tbody>
+</table>
+
+<h6>Passengers</h6>
+<table class="table table-sm">
+    <thead><tr><th>#</th><th>Name</th><th>Type</th><th>Date of birth</th><th>Passport</th><th>Ticket</th></tr></thead>
+    <tbody>
+    @{ var n = 0; }
+    @foreach (var p in b.Passengers)
+    {
+        var ticket = b.Tickets.FirstOrDefault(t => t.PassengerId == p.Id);
+        <tr><td>@(++n)</td><td>@p.Title @p.FirstName @p.LastName</td><td>@p.Type</td><td>@p.DateOfBirth.ToString("yyyy-MM-dd")</td>
+            <td>@(string.IsNullOrEmpty(p.PassportNo) ? "-" : p.PassportNo)</td><td>@(ticket?.TicketNumber ?? "-")</td></tr>
+    }
+    </tbody>
+</table>
+
+@if (Model.Refund is { } r)
+{
+    <div class="alert alert-info">
+        Refund: BDT @r.RefundAmount.ToString("N0") (penalty BDT @r.Penalty.ToString("N0")) &mdash; <partial name="_StatusBadge" model="r.Status.ToString()" />
+        @if (r.Status == RefundStatus.Pending) { <span>waiting for admin approval</span> }
+    </div>
+}
+
+<div class="d-flex gap-2">
+    @* these are POST forms: a state change must never be a link a browser can prefetch *@
+    @if (Model.CanIssue && !Model.HoldExpired)
+    {
+        <form asp-action="Ticket" asp-route-pnr="@b.Pnr" method="post">
+            <button class="btn btn-success" onclick="return confirm('Issue ticket and debit BDT @b.TotalFare.ToString("N0") from your wallet?')">Issue ticket</button>
+        </form>
+    }
+    @if (Model.CanCancel)
+    {
+        <form asp-action="Cancel" asp-route-pnr="@b.Pnr" method="post">
+            <button class="btn btn-outline-danger" onclick="return confirm('Cancel this booking?')">Cancel booking</button>
+        </form>
+    }
+    <a class="btn btn-link" asp-action="Index">Back to my bookings</a>
+</div>

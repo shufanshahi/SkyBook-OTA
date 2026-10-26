@@ -1,0 +1,54 @@
+@model FlightSearchViewModel
+@{ ViewData["Title"] = "Search flights"; }
+
+<h3>Search flights</h3>
+<form asp-action="Search" method="get" class="row g-2 align-items-end mb-4">
+    <div asp-validation-summary="All" class="text-danger col-12"></div>
+    <div class="col-md-2"><label asp-for="Origin" class="form-label"></label>
+        <select asp-for="Origin" asp-items="@(new SelectList(FlightSearchViewModel.Airports))" class="form-select"></select></div>
+    <div class="col-md-2"><label asp-for="Destination" class="form-label"></label>
+        <select asp-for="Destination" asp-items="@(new SelectList(FlightSearchViewModel.Airports))" class="form-select"></select></div>
+    <div class="col-md-2"><label asp-for="DepartureDate" class="form-label"></label>
+        <input asp-for="DepartureDate" type="date" class="form-control" /></div>
+    <div class="col-md-1"><label asp-for="Adults" class="form-label"></label><input asp-for="Adults" type="number" min="1" max="9" class="form-control" /></div>
+    <div class="col-md-1"><label asp-for="Children" class="form-label"></label><input asp-for="Children" type="number" min="0" max="9" class="form-control" /></div>
+    <div class="col-md-1"><label asp-for="Infants" class="form-label"></label><input asp-for="Infants" type="number" min="0" max="9" class="form-control" /></div>
+    <div class="col-md-2"><label asp-for="Cabin" class="form-label"></label>
+        <select asp-for="Cabin" asp-items="@(new SelectList(FlightSearchViewModel.Cabins))" class="form-select"></select></div>
+    <div class="col-md-1"><button class="btn btn-primary w-100">Search</button></div>
+</form>
+
+@if (Model.Result is { } result)
+{
+    @foreach (var w in result.Warnings)
+    {
+        <div class="alert alert-warning">&#9888; <strong>@w.Supplier</strong> did not respond (@w.Message). Showing results from the other supplier only.</div>
+    }
+
+    <p class="text-muted">@result.Offers.Count flight(s) &middot; prices in BDT, per passenger, markup included</p>
+    @foreach (var o in result.Offers)
+    {
+        var s = o.Segments[0];
+        <div class="card mb-2">
+            <div class="card-body d-flex justify-content-between align-items-center">
+                <div>
+                    <strong>@s.Carrier @s.FlightNo</strong> &nbsp; @s.Origin @s.DepartureUtc.ToString("HH:mm") &rarr; @s.Destination @s.ArrivalUtc.ToString("HH:mm") <small class="text-muted">UTC</small>
+                    <div class="text-muted small">
+                        @o.Supplier &middot; @o.CabinClass &middot; @(o.Refundable ? "Refundable" : "Non-refundable") &middot; Bag @o.BaggageAllowance &middot; @o.SeatsAvailable seat(s) left
+                    </div>
+                </div>
+                <div class="text-end">
+                    <div class="fs-5">@o.Currency @o.Total.ToString("N0")</div>
+                    <a class="btn btn-primary btn-sm" asp-controller="Bookings" asp-action="Create"
+                       asp-route-offerId="@o.OfferId" asp-route-adults="@Model.Adults" asp-route-children="@Model.Children"
+                       asp-route-infants="@Model.Infants" asp-route-seenTotal="@o.Total">Select</a>
+                </div>
+            </div>
+        </div>
+    }
+    @if (!result.Offers.Any())
+    {
+        <p>No flights found.</p>
+    }
+}
+@section Scripts { <partial name="_ValidationScriptsPartial" /> }

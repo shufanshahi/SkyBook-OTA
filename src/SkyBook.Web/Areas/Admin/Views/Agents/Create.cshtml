@@ -1,0 +1,17 @@
+@model AgentCreateViewModel
+@{ ViewData["Title"] = "New agent"; }
+<h3>New agent</h3>
+<form asp-action="Create" method="post" class="col-md-6">
+    <div asp-validation-summary="All" class="text-danger"></div>
+    <div class="mb-3"><label asp-for="AgencyName" class="form-label"></label><input asp-for="AgencyName" class="form-control" /></div>
+    <div class="mb-3"><label asp-for="Code" class="form-label"></label><input asp-for="Code" class="form-control" /></div>
+    <div class="mb-3"><label asp-for="Email" class="form-label"></label><input asp-for="Email" class="form-control" /></div>
+    <div class="mb-3"><label asp-for="Password" class="form-label"></label><input asp-for="Password" class="form-control" /></div>
+    <div class="row">
+        <div class="col mb-3"><label asp-for="MarkupPercent" class="form-label"></label><input asp-for="MarkupPercent" class="form-control" /></div>
+        <div class="col mb-3"><label asp-for="CreditLimit" class="form-label"></label><input asp-for="CreditLimit" class="form-control" /></div>
+    </div>
+    <button class="btn btn-primary">Create agent</button>
+    <a class="btn btn-link" asp-action="Index">Cancel</a>
+</form>
+@section Scripts { <partial name="_ValidationScriptsPartial" /> }

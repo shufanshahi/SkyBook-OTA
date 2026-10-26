@@ -1,0 +1,59 @@
+@model BookingCreateViewModel
+@{
+    ViewData["Title"] = "Review and book";
+    var o = Model.Offer!;
+    var s = o.Segments[0];
+}
+<h3>Review and book</h3>
+
+@if (Model.PriceChanged)
+{
+    <div class="alert alert-warning">
+        <strong>The price changed</strong> @(Model.PreviousTotal is { } p ? $"from {o.Currency} {p:N0} " : "")to <strong>@o.Currency @Model.ExpectedTotal.ToString("N0")</strong> per passenger.
+        Review the details and press <em>Confirm and book</em> to accept the new price.
+    </div>
+}
+
+<div class="card mb-3"><div class="card-body d-flex justify-content-between">
+    <div>
+        <strong>@s.Carrier @s.FlightNo</strong> &nbsp; @s.Origin @s.DepartureUtc.ToString("ddd d MMM HH:mm") &rarr; @s.Destination @s.ArrivalUtc.ToString("HH:mm") <small class="text-muted">UTC</small>
+        <div class="text-muted small">@o.Supplier &middot; @o.CabinClass &middot; @(o.Refundable ? "Refundable" : "Non-refundable") &middot; Bag @o.BaggageAllowance</div>
+    </div>
+    <div class="text-end">
+        <div>@o.Currency @Model.ExpectedTotal.ToString("N0") &times; @Model.Passengers.Count</div>
+        <div class="fs-5">Total @o.Currency @((Model.ExpectedTotal * Model.Passengers.Count).ToString("N0"))</div>
+    </div>
+</div></div>
+
+<form asp-action="Create" method="post">
+    <div asp-validation-summary="All" class="text-danger"></div>
+    <input type="hidden" asp-for="OfferId" />
+    <input type="hidden" asp-for="ExpectedTotal" />
+    <input type="hidden" asp-for="IdempotencyKey" />
+
+    @if (Model.International) { <p class="text-muted">International route: a passport number is required for every passenger.</p> }
+
+    @for (var i = 0; i < Model.Passengers.Count; i++)
+    {
+        <div class="card mb-2"><div class="card-body">
+            <input type="hidden" asp-for="Passengers[i].Type" />
+            <h6>Passenger @(i + 1) &middot; @(Model.Passengers[i].Type switch { "ADT" => "Adult", "CHD" => "Child", _ => "Infant" })</h6>
+            <div class="row g-2">
+                <div class="col-md-1"><label asp-for="Passengers[i].Title" class="form-label"></label>
+                    <select asp-for="Passengers[i].Title" asp-items="@(new SelectList(new[] { "Mr", "Ms", "Mrs", "Mstr", "Miss" }))" class="form-select"></select></div>
+                <div class="col-md-3"><label asp-for="Passengers[i].FirstName" class="form-label"></label>
+                    <input asp-for="Passengers[i].FirstName" class="form-control" /><span asp-validation-for="Passengers[i].FirstName" class="text-danger"></span></div>
+                <div class="col-md-3"><label asp-for="Passengers[i].LastName" class="form-label"></label>
+                    <input asp-for="Passengers[i].LastName" class="form-control" /><span asp-validation-for="Passengers[i].LastName" class="text-danger"></span></div>
+                <div class="col-md-2"><label asp-for="Passengers[i].DateOfBirth" class="form-label"></label>
+                    <input asp-for="Passengers[i].DateOfBirth" type="date" class="form-control" /><span asp-validation-for="Passengers[i].DateOfBirth" class="text-danger"></span></div>
+                <div class="col-md-3"><label asp-for="Passengers[i].PassportNo" class="form-label"></label>
+                    <input asp-for="Passengers[i].PassportNo" class="form-control" /></div>
+            </div>
+        </div></div>
+    }
+
+    <button class="btn btn-success">@(Model.PriceChanged ? "Confirm and book" : "Book (hold)")</button>
+    <a class="btn btn-link" asp-controller="Flights" asp-action="Search">Back to search</a>
+</form>
+@section Scripts { <partial name="_ValidationScriptsPartial" /> }

@@ -1,0 +1,20 @@
+@model LoginViewModel
+@{ ViewData["Title"] = "Sign in"; }
+<form asp-action="Login" method="post" class="col-md-4 mx-auto">
+    <h3>Sign in</h3>
+    <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+    <input type="hidden" asp-for="ReturnUrl" />
+    <div class="mb-3">
+        <label asp-for="Email" class="form-label"></label>
+        <input asp-for="Email" class="form-control" autofocus />
+        <span asp-validation-for="Email" class="text-danger"></span>
+    </div>
+    <div class="mb-3">
+        <label asp-for="Password" class="form-label"></label>
+        <input asp-for="Password" class="form-control" />
+        <span asp-validation-for="Password" class="text-danger"></span>
+    </div>
+    <button class="btn btn-primary w-100">Login</button>
+    <p class="text-muted small mt-3">Demo: agent1@skybook.test / Agent@123 &middot; admin@skybook.test / Admin@123</p>
+</form>
+@section Scripts { <partial name="_ValidationScriptsPartial" /> }

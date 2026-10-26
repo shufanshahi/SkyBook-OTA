@@ -1,0 +1,22 @@
+@model BookingListViewModel
+@{ ViewData["Title"] = "My bookings"; }
+<h3>My bookings</h3>
+<form method="get" class="row g-2 mb-3">
+    <div class="col-auto">
+        <select name="status" class="form-select" onchange="this.form.submit()">
+            <option value="">All statuses</option>
+            @foreach (var s in Enum.GetNames<BookingStatus>())
+            {
+                <option value="@s" selected="@(Model.Status == s)">@s</option>
+            }
+        </select>
+    </div>
+</form>
+<partial name="_BookingTable" model="Model.Rows" />
+<div class="d-flex justify-content-between">
+    <span class="text-muted">@Model.TotalCount booking(s) &middot; page @Model.Page</span>
+    <div>
+        @if (Model.Page > 1) { <a class="btn btn-outline-secondary btn-sm" asp-action="Index" asp-route-status="@Model.Status" asp-route-page="@(Model.Page - 1)">Previous</a> }
+        @if (Model.HasNext) { <a class="btn btn-outline-secondary btn-sm" asp-action="Index" asp-route-status="@Model.Status" asp-route-page="@(Model.Page + 1)">Next</a> }
+    </div>
+</div>
