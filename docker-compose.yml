@@ -1,0 +1,35 @@
+# docker compose up --build  ->  http://localhost:5000
+# demo logins: agent1@skybook.test / Agent@123, admin@skybook.test / Admin@123
+services:
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: "Your_strong_Pass123"
+    ports: ["1433:1433"]
+    volumes: ["sqldata:/var/opt/mssql"]
+
+  mock-gds:
+    build:
+      context: .
+      dockerfile: src/SkyBook.MockGds/Dockerfile
+    ports: ["8080:8080"]
+
+  mock-ndc:
+    build: ./mock-ndc-go
+    ports: ["8081:8081"]
+
+  web:
+    build:
+      context: .
+      dockerfile: src/SkyBook.Web/Dockerfile
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development   # applies migrations + seeds demo users on startup
+      ConnectionStrings__Default: "Server=sqlserver;Database=SkyBook;User Id=sa;Password=Your_strong_Pass123;TrustServerCertificate=True"
+      Suppliers__SkyGds__BaseUrl: "http://mock-gds:8080"
+      Suppliers__AeroNdc__BaseUrl: "http://mock-ndc:8081"
+    ports: ["5000:8080"]
+    depends_on: [sqlserver, mock-gds, mock-ndc]
+
+volumes:
+  sqldata:

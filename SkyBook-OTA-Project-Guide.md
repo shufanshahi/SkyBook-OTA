@@ -1597,12 +1597,12 @@ Add the CI badge to the README.
 
 ### Day 5 — Thu Oct 29: Admin backend + packaging
 - [x] Admin services (agents, top-up, markup, booking search, supplier logs); bare tables only (10.9)
-- [ ] Hold-expiry job ✅ done; integration tests (full flow, idempotency, concurrency) still to do (Section 12)
-- [ ] Dockerfiles + Compose; test a clean `docker compose up --build`
-- [ ] CI green; test-cases.md; index experiment notes (index notes ✅ done)
+- [x] Hold-expiry job; integration tests (full flow, idempotency, concurrency, isolation) — 16 tests in `tests/SkyBook.IntegrationTests`, plus controller unit tests
+- [x] Dockerfiles + Compose; clean `docker compose up --build` tested (e2e smoke 38/38)
+- [ ] CI green (workflow written, runs unit + integration + Go; needs a push to GitHub to confirm); [x] test-cases.md; [x] index experiment notes
 
 ### Day 6 — Fri Oct 30: Apply (deadline day — don't leave it to the last hour)
-- [ ] README with screenshots + architecture diagram (draw.io / Excalidraw)
+- [x] README with screenshots + architecture diagram (Graphviz source in `docs/architecture.dot`)
 - [ ] Update CV + cover letter (Section 17)
 - [ ] Submit application **in the morning**
 

@@ -1,0 +1,19 @@
+digraph SkyBook {
+  rankdir=LR; fontname="Helvetica"; node [fontname="Helvetica", shape=box, style="rounded,filled", fillcolor="#f4f6fb", color="#5b6b8c"]; edge [fontname="Helvetica", fontsize=10, color="#5b6b8c"];
+  browser [label="Agent / Admin\nbrowser", shape=ellipse, fillcolor="#fff3d6"];
+  subgraph cluster_web { label="SkyBook.Web (ASP.NET Core 8 MVC)"; style="rounded,dashed"; color="#8896b3";
+    mvc [label="Controllers + Razor views\ncookie auth, roles, anti-forgery\ncorrelation-id middleware"];
+    hold [label="HoldExpiryService\n(background job)"]; }
+  subgraph cluster_core { label="Application / Domain / Infrastructure"; style="rounded,dashed"; color="#8896b3";
+    book [label="BookingService\nAdminService"];
+    agg [label="FlightSearchService\nFlightPricingService\n(parallel, partial failure)"];
+    dom [label="Domain: Booking state machine\nPassengerRules, PricingPolicy"]; }
+  subgraph cluster_sup { label="Supplier clients"; style="rounded,dashed"; color="#8896b3";
+    gdsc [label="SkyGdsSupplier\nSOAP / XDocument"]; ndcc [label="AeroNdcSupplier\nREST / JSON"];
+    log [label="SupplierLoggingHandler\nPolly retry + timeouts\nPII masking"]; }
+  db [label="SQL Server\nEF Core (CRUD) + Dapper\nstored procedures", shape=cylinder, fillcolor="#e3f1e6"];
+  gds [label="MockGds\nC# minimal API (SOAP)", fillcolor="#fde7e7"]; ndc [label="MockNdc\nGo (REST/JSON)", fillcolor="#fde7e7"];
+  browser -> mvc [label="HTTPS"]; mvc -> book; mvc -> agg; hold -> book; book -> dom; book -> agg;
+  book -> db [label="usp_IssueTicket\nusp_CancelBooking\n..."]; agg -> gdsc; agg -> ndcc; gdsc -> log; ndcc -> log;
+  log -> gds [label="SOAP"]; log -> ndc [label="REST"]; log -> db [label="SupplierLogs", style=dashed];
+}

@@ -1,0 +1,29 @@
+name: CI
+on: [push, pull_request]
+jobs:
+  dotnet:
+    runs-on: ubuntu-latest
+    services:
+      sqlserver:
+        image: mcr.microsoft.com/mssql/server:2022-latest
+        env:
+          ACCEPT_EULA: "Y"
+          MSSQL_SA_PASSWORD: "Your_strong_Pass123"
+        ports: ["1433:1433"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with: { dotnet-version: '8.0.x' }
+      - run: dotnet restore
+      - run: dotnet build --no-restore -c Release
+      - run: dotnet test tests/SkyBook.UnitTests --no-build -c Release
+      - run: dotnet test tests/SkyBook.IntegrationTests --no-build -c Release
+        env:
+          SKYBOOK_TEST_DB: "Server=localhost,1433;Database=SkyBookTests;User Id=sa;Password=Your_strong_Pass123;TrustServerCertificate=True"
+  go:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with: { go-version: '1.23' }
+      - run: cd mock-ndc-go && go vet ./... && go build ./... && go test ./...
